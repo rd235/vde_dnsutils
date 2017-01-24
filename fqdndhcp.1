@@ -1,0 +1,90 @@
+.TH FQDNDHCP 1 "January 24, 2017" "Virtual Distributed Ethernet"
+.SH NAME
+fqdndhcp \- hash based IPv6 DNS server
+.SH SYNOPSIS
+.B fqdndhcp
+[
+.I OPTIONS
+]
+
+.SH DESCRIPTION
+Fqdndhcp is an IPv6 DHCP server implementation for IPV6 stateful autoconfiguration.
+When fqdndhcp receives a DHCP query including the fqdn option (option 39 as
+defined in RFC4704) it queries the DNS for an AAAA record.
+If there is such a record, the IPv6 address is returned to the DHCP client.
+
+The configuration of the networking nodes (hosts, servers, networked things or threads)
+is very simple in this way, it is sufficient to provide each node with a its own fully qualified
+domain name.
+It very convenient to use this tool is together with hashdns to configure a network
+of servers (Virtual machines in Data Services providing IaaS services, Internet of 
+Things or Threads environments).
+
+In fact, each node provided with a fully qualified domain name receives
+from hashdns (through fqdndhcp) its corresponding hash based IPv6 address
+and it is reachable by that name without any further configuration.
+
+.SH OPTIONS
+.I fqdndhcp
+accepts the following options.
+
+.TP
+\fB\-s \fI vde_switch
+.TQ
+\fB\-\-switch \fI vde_switch
+.TQ
+\fB\-\-sock \fI vde_switch
+specify the vde_switch to use. Use the standard switch if omitted.
+It supports all the vde implementations provided by libvdeplug.
+
+.TP
+\fB\-i \fI interface
+.TQ
+\fB\-\-iface \fI interface
+use a networking interface instead of vde.
+
+.TP
+\fB\-r \fI domain_name_server(s)
+.TQ
+\fB\-\-resolver \fI domain_name_server(s)
+Name servers that this program should query. The argument is a
+comma separated list of IPv4 (dot notation)  or IPv6 (colon notation)
+internet addresses.
+
+.TP
+\fB\-D \fI domain_name_server(s)
+.TQ
+\fB\-\-dns \fI domain_name_server(s)
+Information returned to the client as option OPTION_DNS_SERVERS (23).
+
+.TP
+\fB\-N \fI ntp_server(s)
+.TQ
+\fB\-\-ntp \fI ntp_server(s)
+Information returned to the client as option OPTION_SNTP_SERVERS (31).
+
+.TP
+\fB\-S \fI domain(s)
+.TQ
+\fB\-\-dnssearch \fI domain(s)
+Information returned to the client as option OPTION_DOMAIN_LIST (24).
+
+.TP
+\fB\-d 
+.TQ
+\fB\-\-daemon
+Run as a daemon. Use syslog for logging.
+
+.TP
+\fB\-pidfile \fI pidfile
+put  the  process  ID  of hashdsn in pidfile. Can be used
+with --daemon to store the PID for future killing.
+
+.TP
+\fB\-v 
+.TQ
+\fB\-\-verbose
+print verbose output for debugging.
+
+.SH SEE ALSO
+\fBvde_switch\fP(1)

@@ -1,0 +1,96 @@
+.TH FQDNDHCP 1 "January 24, 2017" "Virtual Distributed Ethernet"
+.SH NAME
+fqdndhcp4 \- hash based IPv4 DNS server
+.SH SYNOPSIS
+.B fqdndhcp4
+[
+.I OPTIONS
+]
+
+.SH DESCRIPTION
+Fqdndhcp4 is an IPv4 DHCP server implementation.
+When fqdndhcp4 receives a DHCP query including the fqdn option (option 81 as
+defined in RFC4702) it queries the DNS for an A record.
+If there is such a record, the IP address is returned to the DHCP client.
+
+The configuration of the networking nodes (hosts, servers, networked things or threads)
+is very simple in this way, it is sufficient to provide each node with a its own fully qualified
+domain name.
+
+The network mask and default gateway can also be retrieved from the DNS
+using suffixes in the hostname field of the fqdn
+(if not defined using their specific options, see here below).
+e.g. when fqdndhcp4 is providing an IPv4 address to host.domain.org, it searches the
+netmask querying the dns for host-mask.domain.org and looks for the default gateway 
+as host-gw.domain.org.
+
+.SH OPTIONS
+.I fqdndhcp4
+accepts the following options.
+
+.TP
+\fB\-s \fI vde_switch
+.TQ
+\fB\-\-switch \fI vde_switch
+.TQ
+\fB\-\-sock \fI vde_switch
+specify the vde_switch to use. Use the standard switch if omitted.
+It supports all the vde implementations provided by libvdeplug.
+
+.TP
+\fB\-i \fI interface
+.TQ
+\fB\-\-iface \fI interface
+use a networking interface instead of vde.
+
+.TP
+\fB\-r \fI domain_name_server(s)
+.TQ
+\fB\-\-resolver \fI domain_name_server(s)
+Name servers that this program should query. The argument is a
+comma separated list of IPv4 (dot notation)  or IPv6 (colon notation)
+internet addresses.
+
+.TP
+\fB\-D \fI domain_name_server(s)
+.TQ
+\fB\-\-dns \fI domain_name_server(s)
+Information returned to the client as Domain Name Server (option 6).
+
+.TP
+\fB\-S \fI domain(s)
+.TQ
+\fB\-\-dnssearch \fI domain(s)
+Information returned to the client as DNS domain search list. (option 119).
+
+.TP
+\fB\-m \fI netmask(s)
+.TQ
+\fB\-\-mask \fI netmask(s)
+Information returned to the client as Subnet Mask. (option 1).
+
+.TP
+\fB\-g \fI defgateway(s)
+.TQ
+\fB\-\-gw \fI defgateway(s)
+Information returned to the client as Router. (option 3).
+
+.TP
+\fB\-d 
+.TQ
+\fB\-\-daemon
+Run as a daemon. Use syslog for logging.
+
+.TP
+\fB\-pidfile \fI pidfile
+put  the  process  ID  of hashdsn in pidfile. Can be used
+with --daemon to store the PID for future killing.
+
+.TP
+\fB\-v 
+.TQ
+\fB\-\-verbose
+print verbose output for debugging.
+
+.SH SEE ALSO
+\fBvde_switch\fP(1)

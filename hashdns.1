@@ -1,0 +1,104 @@
+.TH HASHDNS 1 "January 17, 2017" "Virtual Distributed Ethernet"
+.SH NAME
+hashdns \- hash based IPv6 DNS server
+.SH SYNOPSIS
+.B hashdns
+[
+.I OPTIONS
+]
+addr[\fB/\fRmask][\fB,\fRdefroute]
+\fR...
+
+.SH DESCRIPTION
+Hashdns is an IPv6 DNS server implementation providing forward and reverse name
+resolution using hash based IP addresses.
+This server should be delegated for one or more domains.
+When it receives a query, it searches a base address for the domain 
+(using either a configuration file or one further DNS query)
+The resulting IPv6 address has the same higher 64bit as the base address and
+the lower 64 bits computed as the result of a hash function using as its
+parameters the fully qualified domain name and the lower 64 bits of the base 
+address.
+
+This hashdns server can join several IP addresses (both IPv4 and IPv6).
+For each address it is possible to specify the number of bits of the host
+mask and a default route address.
+
+.SH OPTIONS
+.I Hashdns
+accepts the following options.
+
+.TP
+\fB\-r \fI domain_name_server(s)
+.TQ
+\fB\-\-resolver \fI domain_name_server(s)
+Name servers that this program should query. The argument is a
+comma separated list of IPv4 (dot notation)  or IPv6 (colon notation)
+internet addresses.
+
+.TP
+\fB\-f \fI map_file
+.TQ
+\fB\-\-mapfile \fI map_file
+Define the domain to base address configuration file.
+Each line of the file consists of two strings: a fully qualified domain
+name and an IPv6 address (numeric address or domain name, in this latter
+case the corresponding AAAA record will be used).
+Lines beginning by # are comments.
+
+.TP
+\fB\-D \fI map_domain
+.TQ
+\fB\-\-mapdomain \fI map_domain
+Use the DNS name resolution to retrieve the network base address.
+\fImap_domain\fR is used as a suffix of the domain name in the DNS query.
+Example: if \fImap_domain\fR is \fBmap.hash.best.org\fR, hashdns, trying
+to provide an address for \fBhost.net.hash.best.org\fR, searches for base
+addresses as AAAA records corresponding to
+\fBnet.hash.best.org.map.hash.best.org\fR and
+\fRhash.best.org.map.hash.best.org\fR.
+More specific mapping are preferred.
+When map_file and map_file are used together, hashdns tries to find a 
+mapfile match first, using mapdomain only when mapfile provides no results.
+
+.TP
+\fB\-R [ never , always , same , net ]
+.TQ
+\fB\-\-resolver [ never , always , same , net ]
+Hashdns maintains a cache of the recent name-to-address resolutions to provide
+a reverse resolution service (IP address to fqdn).
+This options define the policy used to add a name-address pair in the
+cache: \fBnever\fR de-facto disable this feature, \fBalways\fR add
+the results of all the queries, \fBsame\fR add a cache item only if the sender is querying
+about its own address, \fBnet\fR add a cache item if the sender is querying about
+another host on the same subnet (common 64 bit prefix).
+
+
+.TP
+\fB\-d 
+.TQ
+\fB\-\-daemon
+Run as a daemon. Use syslog for logging.
+
+.TP
+\fB\-pidfile \fI pidfile
+put  the  process  ID  of hashdsn in pidfile. Can be used
+with --daemon to store the PID for future killing.
+
+.TP
+\fB\-s \fI vde_switch
+.TQ
+\fB\-\-switch \fI vde_switch
+.TQ
+\fB\-\-sock \fI vde_switch
+specify the vde_switch to use. Use the standard switch if omitted.
+It supports all the vde implementations provided by libvdeplug.
+
+.TP
+\fB\-v 
+.TQ
+\fB\-\-verbose
+print verbose output for debugging.
+
+.SH SEE ALSO
+\fBvde_switch\fP(1)
