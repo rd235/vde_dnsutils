@@ -496,7 +496,7 @@ static struct sock_fprog filter = {
 };
 
 int open_iface(char *interface) {
-	int multifd;
+	int fd;
 	int ifindex = if_nametoindex(interface);
 	struct sockaddr_ll bindaddr;
 	if (ifindex == 0) {
@@ -504,7 +504,7 @@ int open_iface(char *interface) {
 		return -1;
 	}
 	generatemyaddr();
-	if ((multifd=socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0)
+	if ((fd=socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IP))) < 0)
 		return -1;
 	memset(&bindaddr, 0, sizeof(bindaddr));
 	memcpy(bindaddr.sll_addr, &mymac, sizeof(mymac));
@@ -513,14 +513,14 @@ int open_iface(char *interface) {
 	bindaddr.sll_ifindex = ifindex;
 	bindaddr.sll_halen = sizeof(mymac);
 	bindaddr.sll_pkttype = PACKET_BROADCAST;
-	if (setsockopt(multifd, SOL_SOCKET, SO_ATTACH_FILTER, &filter, sizeof(filter)) < 0)
+	if (setsockopt(fd, SOL_SOCKET, SO_ATTACH_FILTER, &filter, sizeof(filter)) < 0)
 		goto error;
-	if ((bind(multifd, (struct sockaddr *) &bindaddr, sizeof(bindaddr))) < 0) 
+	if ((bind(fd, (struct sockaddr *) &bindaddr, sizeof(bindaddr))) < 0) 
 		goto error;
-	return multifd;
+	return fd;
 error:
 	perror("open_iface");
-	close(multifd);
+	close(fd);
 	return -1;
 }
 

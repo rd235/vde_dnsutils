@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# ifup hook script for resolvconf
+#
+# This file is part of the resolvconf package.
+#
+
+case "$METHOD" in
+  manual) : ;;
+  *) exit 0 ;;
+esac
+
+case "$ADDRFAM" in
+  inet6) : ;;
+  *) exit 0 ;;
+esac
+
+if [ "$IF_FQDNDHCP" ] ; then
+	# echo down `date` $IFACE/$LOGICAL $ADDRFAM $METHOD $MODE $PHASE $IF_FQDNDHCP >> /tmp/fqdn
+	/sbin/dhclient -6 -x -pf /run/dhclient6.$IFACE.pid \
+	-lf /var/lib/dhcp/dhclient6.$IFACE.leases $IFACE
+	rm -f /run/dhclient6.$IFACE.pid /var/lib/dhcp/dhclient6.$IFACE.conf
+fi
+

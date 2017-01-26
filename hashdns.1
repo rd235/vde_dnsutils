@@ -29,6 +29,22 @@ mask and a default route address.
 accepts the following options.
 
 .TP
+\fB\-s \fI vde_switch
+.TQ
+\fB\-\-switch \fI vde_switch
+.TQ
+\fB\-\-sock \fI vde_switch
+specify the vde_switch to use.
+It supports all the vde implementations provided by libvdeplug.
+Hasdns uses the networking interfaces available if this option is omitted.
+
+.TP
+\fB\-i \fI interface
+.TQ
+\fB\-\-iface \fI interface
+bind/restrict the service to a specific interface. 
+
+.TP
 \fB\-r \fI domain_name_server(s)
 .TQ
 \fB\-\-resolver \fI domain_name_server(s)
@@ -84,15 +100,6 @@ Run as a daemon. Use syslog for logging.
 \fB\-pidfile \fI pidfile
 put  the  process  ID  of hashdsn in pidfile. Can be used
 with --daemon to store the PID for future killing.
-
-.TP
-\fB\-s \fI vde_switch
-.TQ
-\fB\-\-switch \fI vde_switch
-.TQ
-\fB\-\-sock \fI vde_switch
-specify the vde_switch to use. Use the standard switch if omitted.
-It supports all the vde implementations provided by libvdeplug.
 
 .TP
 \fB\-v 

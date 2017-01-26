@@ -34,6 +34,7 @@
 #include <utils.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <resolv.h>
 
@@ -128,28 +129,9 @@ void printin6addr(FILE *f, struct in6_addr *addr) {
 	fprintf(f,"\n");
 } 
 
-#if 0
-int define_resolver(char *resolver, int domain) {
-	struct addrinfo hints, *servinfo;
-	int s;
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = domain;
-	s = getaddrinfo(resolver, "domain", &hints, &servinfo);
-	if (s < 0) {
-		printlog(LOG_ERR, "resolver error %s", gai_strerror(s));
-		return -1;
-	}
-	switch (servinfo[0].ai_family) {
-		case	AF_INET:
-			_res.nscount = 1;
-			_res.nsaddr_list[0] = *((struct sockaddr_in *) servinfo[0].ai_addr);
-			break;
-		case AF_INET6:
-			_res._u._ext.nscount6 = 1;
-			_res._u._ext.nsaddrs[0] = ((struct sockaddr_in6 *) servinfo[0].ai_addr);
-			break;
-	}
-	freeaddrinfo(servinfo);
-	return 0;
+int bindtodevice(int skfd, char *ifname) {
+	struct ifreq interface;
+	strncpy(interface.ifr_ifrn.ifrn_name, ifname, IFNAMSIZ);
+	return setsockopt(skfd, SOL_SOCKET, SO_BINDTODEVICE,
+			&interface, sizeof(interface));
 }
-#endif

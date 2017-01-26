@@ -57,6 +57,7 @@ static int daemonize; // daemon mode
 static char *cwd;
 static char *pidfile;
 static char *switch_path;
+static char *interface;
 static enum {NEVER, ALWAYS, SAME, NET} reverse_policy = ALWAYS;
 static char *reverse_policy_str[] = {"never", "always", "same", "net"};
 
@@ -234,12 +235,13 @@ void usage(char *progname)
 {
 	fprintf(stderr,"Usage: %s OPTIONS DNSvirtserver[/mask][,defaultroute] ... \n"
 			"\t--help|-h\n"
+			"\t--sock|--switch|-s vde_switch\n"
+			"\t--iface|-i interface\n"
 			"\t--mapdomain|-D map_domain\n"
 			"\t--mapfile|-f map_file\n"
 			"\t--daemon|-d\n"
 			"\t--pidfile pidfile\n"
-			"\t--verbose|-v\n"
-			"\t--sock|--switch|-s vde_switch\n",
+			"\t--verbose|-v\n",
 			progname);
 	exit(1);
 }
@@ -254,7 +256,7 @@ int main(int argc, char *argv[])
 	char *progname = basename(argv[0]);
 	char *nameservers = NULL;
 #define PIDFILEARG 131
-	static char *short_options = "hD:f:dvns:r:R:";
+	static char *short_options = "hD:f:dvns:r:R:i:";
 	static struct option long_options[] = {
 		{"help", 0 , 0, 'h'},
 		{"mapdomain", 1 , 0, 'D'},
@@ -264,6 +266,7 @@ int main(int argc, char *argv[])
 		{"verbose", 0 , 0, 'v'},
 		{"switch", 1 , 0, 's'},
 		{"sock", 1 , 0, 's'},
+		{"iface", 1 , 0, 'i'},
 		{"resolver", 1 , 0, 'r'},
 		{"reverse", 1 , 0, 'R'},
 		{0, 0, 0, 0}
@@ -293,6 +296,9 @@ int main(int argc, char *argv[])
 				break;
 			case 's':
 				switch_path=optarg;
+				break;
+			case 'i':
+				interface=optarg;
 				break;
 			case 'r':
 				nameservers=optarg;
@@ -383,11 +389,19 @@ int main(int argc, char *argv[])
 	} else
 		dnssock=socket(AF_INET6,SOCK_DGRAM, 0);
 
+	if (interface && bindtodevice(dnssock, interface) < 0) {
+		printlog(LOG_ERR, "bindtodevice %s", strerror(errno));
+		exit(1);
+	}
 	memset(&bindsockaddr, 0, sizeof(bindsockaddr));
 	bindsockaddr.sin6_family = AF_INET6;
 	bindsockaddr.sin6_addr = in6addr_any;
 	bindsockaddr.sin6_port = htons(53);
-	bind(dnssock,(struct sockaddr *)&bindsockaddr,sizeof(struct sockaddr_in6));
+	if (bind(dnssock, (struct sockaddr *)&bindsockaddr,
+				sizeof(struct sockaddr_in6)) < 0) {
+		printlog(LOG_ERR, "bind %s", strerror(errno));
+		exit(1);
+	}
 	main_parse_loop(dnssock);
 	close(dnssock);
 	if (switch_path != NULL) 

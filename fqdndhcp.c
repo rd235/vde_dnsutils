@@ -579,42 +579,47 @@ int get_link_local_addr(char* if_name, struct sockaddr_in6 *ip)
 		freeifaddrs(ifaddr);
 		return 0;
 	}
+	errno = ENODEV;
 	freeifaddrs(ifaddr);
 	return -1;
 }
 
 int open_iface(char *interface) {
 	struct sockaddr_in6 bindaddr;
-	int multifd;
+	int fd = -1;
 	struct ipv6_mreq mc_req;
 	int ttl=1;
 	int one=1;
 	memset(&bindaddr, 0, sizeof(bindaddr));
 	bindaddr.sin6_family      = AF_INET6;
 	if (get_link_local_addr(interface, &bindaddr) < 0)
-		return -1;
+		goto error;
 	//packetdump(stderr, bindaddr.sin6_addr.s6_addr,16);
-	if ((multifd=socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0)
-		return -1;
-	if ((setsockopt(multifd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
+	if ((fd=socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+		goto error;
+	if ((setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 					&ttl, sizeof(ttl))) < 0)
 		goto error;
-	if ((setsockopt(multifd, SOL_SOCKET, SO_REUSEPORT,
+	if ((setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
 					&one, sizeof(one))) < 0)
+		goto error;
+	if (bindtodevice(fd, interface) < 0)
 		goto error;
 	memcpy(&bindaddr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
 	bindaddr.sin6_port        = htons(DHCP_SERVERPORT);
-	if ((bind(multifd, (struct sockaddr *) &bindaddr, sizeof(bindaddr))) < 0) 
+	if ((bind(fd, (struct sockaddr *) &bindaddr, sizeof(bindaddr))) < 0) 
 		goto error;
 	memcpy(&mc_req.ipv6mr_multiaddr, dhcpip, 16);
 	mc_req.ipv6mr_interface = if_nametoindex(interface);
 	//printf("interface # %d\n",if_nametoindex(interface));
-	if ((setsockopt(multifd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
+	if ((setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP,
 					&mc_req, sizeof(mc_req))) < 0)
 		goto error;
-	return multifd;
+	return fd;
 error:
-	close(multifd);
+	printlog(LOG_ERR, "Error opening interface %s: %s", interface, strerror(errno));
+	if (fd >= 0)
+		close(fd);
 	return -1;
 }
 
@@ -744,7 +749,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	if (daemonize && daemon(0, 0)) {
-		printlog(LOG_ERR,"daemon: %s",strerror(errno));
+		printlog(LOG_ERR,"daemon: %s", strerror(errno));
 		exit(1);
 	}
 
@@ -758,12 +763,12 @@ int main(int argc, char *argv[])
 	}
 
 	if (interface) {
-		printf("interface %s\n",interface);
 		int fd=open_iface(interface);
 		if (fd >= 0) {
 			main_iface_loop(fd);
 			close(fd);
-		}
+		} else 
+			exit(1);
 	} else {
 
 		VDECONN *vdeconn=vde_open(switch_path, "DHCPv6", NULL);

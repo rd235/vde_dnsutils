@@ -1,0 +1,26 @@
+#!/bin/busybox sh
+#set -x
+
+# udhcp sample script by Gabriel Somlo (somlo at cmu edu)
+#	- uses 'ip' instead of 'ifconfig' and 'route'
+#	- make minimal changes, and only if required by changing dhcp options
+
+[ -z "$1" ] && echo 'Error: should be called from udhcpc' && exit 1
+
+case "$1" in
+  deconfig)
+    # bring interface up, but with no IP configured:
+    ip addr flush dev $interface
+    ip link set $interface up
+    ;;
+  bound)
+    # configure interface and routes:
+    ip addr flush dev $interface
+    ip addr add ${ip}/${mask} dev $interface
+    [ -n "$router" ] && ip route add default via ${router%% *} dev $interface
+    ;;
+  renew)
+    ;;
+esac
+
+exit 0

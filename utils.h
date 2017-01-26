@@ -9,6 +9,9 @@ void save_pidfile(char *pidfile, char *cwd);
 void packetdump(FILE *f, void *arg,ssize_t len);
 void printin6addr(FILE *f, struct in6_addr *addr);
 
+/* "bind" a socket to a specific interface */
+int bindtodevice(int skfd, char *ifname);
+
 typedef struct f16 {
 	  char val[2];
 } f16;
