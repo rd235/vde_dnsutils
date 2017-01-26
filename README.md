@@ -10,7 +10,7 @@ vde\_dnsutils depends on the following libraries:
 * libvdeplug (vdeplug4)
 * libvdestack
 
-vde\_dnsutils uses the auto-tools, so the standard installing procedure is the following:
+vde\_dnsutils uses the auto-tools, so the standard installation procedure is the following:
 ```
 $ autoreconf -if
 $ ./configure
@@ -21,7 +21,7 @@ $ sudo make install
 ## HASHDNS
 
 General remark: hashdns, fqdndhcp and fqdndhcp4 run as foreground processes in the examples
-below. This is to show how these tools work. All the programs provided in this 
+below. This is to show how these tools work. All the programs included in this 
 package provide options to run them as daemons.
 * -d (or --daemon) run the program as a daemon, use syslog for logging
 * -pidfile *pathname* store the id of the deamon process in a file at the specified pathname.
@@ -30,7 +30,7 @@ Hashdns is an IPv6 DNS server implementation providing forward and reverse
 name resolution using hash based IP addresses.  This server should be
 delegated for one or more domains. When it receives a query, it searches a
 base address for the domain (using either a configuration file or one further
- DNS query) The resulting IPv6 address has the same higher 64bit as the base
+ DNS query) The resulting IPv6 address has the same higher 64bits as the base
 address and the lower 64 bits computed as the result  of  a hash function
 using as its parameters the fully qualified domain name and the lower 64 bits
 of the base address.
@@ -64,7 +64,7 @@ Update the serial number in the zone's SOA and reload the DNS tables.
 A hashdns server can be delegated for several domains. This configuration
 examples refers to *bind9*. Any other DNS server implementation can be used
 instead on *bind*, just the syntax of the configuration file to define
-addresses and delegate subdomains vary. 
+addresses and delegate subdomains is different. 
 
 Suggested step: test if the DNS configuration is correct:
 ```
@@ -160,7 +160,7 @@ $ host -t AAAA bar.hash.mydomain.org
 bar.hash.mydomain.org has IPv6 address 2001:1000:2000:3000:689c:483e:e381:75cf
 ```
 
-any fully qualified ending in "hash.mydomain.org" is mapped in a *unique* (except for very very rare hash collisions) 
+any fully qualified ending in "hash.mydomain.org" is mapped to a *unique* (except for very very rare hash collisions) 
 IPv6 address.
 
 ## FQDNDHCP
@@ -191,7 +191,7 @@ System to hosts, so the DNS must provide the right AAAA records for fqdndhcp to 
 All the required AAAA records can be added by hand, but clearly fqdndhcp has been design to
 interoperate with hashdns.
 
-In the following we assume that the hashdns server described above is up and running.
+In the following we'll assume that a hashdns server is up and running (as described in the previous sections of this README file).
 
 #### 2A. run fqdndhcp (on a real host)
 ```
@@ -206,21 +206,21 @@ $ fqdndhcp -s vxvde://
 
 #### 2C. run fqdndhcp (in a VDE namespace)
 
-Start a VDE namespace (as described above in hashdns section 2C.
+Start a VDE namespace (as described above in hashdns section 2C).
 ```
 $ ip link set vde0 up
 $ fqdndhcp -v -i vde0 -r 2620:0:ccc::2
 ```
-As above, -r  option specifies which DNS will be used by fqdndhcp. If the option is 
+-r specifies which DNS will be used by fqdndhcp. If the option is 
 missing, fqdndhcp uses the name server defined in /etc/resolv.conf which could not be reachable from the virtual network.
 
 #### 3A. test fqdndhcp (running the client on a real host)
 
 Let us consider the scenario of a host (maybe a tiny device/sensor/actuator of the Internet of Things) that need to auto-configure
-its address. (stateless auto-configuration is for clients, IoT devices must be servers thus must be provided with well known
-names and addresses,
+its address. Stateless auto-configuration is for clients, IoT devices must be servers thus must be provided with well known, globally visible and accessible
+names and addresses.
 
-In order to use fqdndhcp, a dhcpv6 dhcp client must be configured to send the Fully Qualified Domain Name of the host on its
+In order to use fqdndhcp, a dhcpv6 client must be configured to send the Fully Qualified Domain Name of the host on its
 queries.
 
 In this example isc-dhclient will be used.
@@ -329,7 +329,7 @@ $ fqdndhcp4 -s vxvde://
 
 #### 2C. run fqdndhcp4 (in a VDE namespace)
 
-Start a VDE namespace (as described above in hashdns section 2C.
+Start a VDE namespace (as described above in hashdns section 2C).
 ```
 $ ip link set vde0 up
 ```
@@ -337,7 +337,7 @@ $ ip link set vde0 up
 ```
 $ fqdndhcp4 -i vde0 -r 208.67.220.220
 ```
-As above, -r  option specifies which DNS will be used by fqdndhcp. If the option is
+-r specifies which DNS will be used by fqdndhcp. If the option is
 missing, fqdndhcp uses the name server defined in /etc/resolv.conf which could not be reachable from the virtual network.
 
 #### 3A. test fqdndhcp4 (running the client on a real host)
@@ -358,7 +358,7 @@ A simpler dhcp client for fdqn IPv4 autoconfigration is *udhcpc* (provided by bu
 
 #### 3B. test fqdndhcp (running the client in a VDE namespace)
 
-It very similar to the previous case, just remeber to add the interface name to udhcpc (to override the deafult value which is eth0).
+It very similar to the previous case, just remeber to add the interface name to udhcpc (to override the default value which is eth0).
 ```
 # busybox udhcpc -f -q -F foo4.mydomain.org -i vde0
 # ip addr
