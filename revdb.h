@@ -30,6 +30,6 @@
 void ra_add(char *name, struct in6_addr *addr);
 char *ra_search(struct in6_addr *addr);
 void ra_clean(void);
-void ra_setttl(unsigned int ttl);
-unsigned int ra_gettl(void);
+void ra_set_timeout(unsigned int timeout);
+unsigned int ra_get_timeout(void);
 #endif

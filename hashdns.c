@@ -101,7 +101,8 @@ static int computeaddr(struct in6_addr *addr,char *uname) {
 
 static int getrevaddr(char *name, struct in6_addr *addr) {
 	int i,j;
-	//printf("%d %s\n",strlen(name),name+64);
+	if (verbose)
+		printf("Resolving PTR: %s\n", name);
 	if (strlen(name) != 73 || strcmp(name+64,REVTAIL) != 0)
 		return 0;
 	for (i=0,j=60; i<16; i++,j-=4) {
@@ -187,7 +188,7 @@ ssize_t dnsparse(char *buf, struct sockaddr_in6 *from, ssize_t n) {
 			reply->shortname = e16(COPYNAME_TAG);
 			reply->type = e16(PTRTAG);
 			reply->class = e16(INCLASS);
-			reply->ttl = e32(ra_gettl());
+			reply->ttl = e32(ra_get_timeout());
 			reply->len = e16(replynamelen);
 			n = ((char *)(reply + 1) + replynamelen) - buf;
 #ifdef PACKETDUMP
@@ -202,6 +203,7 @@ dnsparse_err:
 	return n;
 }
 
+#if 0
 void main_parse_loop(int sock) 
 {
 	ssize_t n;
@@ -214,6 +216,55 @@ void main_parse_loop(int sock)
 		if (n<=0) return;
 		if ((n = dnsparse(buf,&from,n)) > 0) {
 			sendto(sock,buf,n, 0,(struct sockaddr *)&from,fromlen);
+			ra_clean();
+		}
+	}
+}
+#endif
+
+/* multihome udp support (Credit: inspired-by Russell Stuart
+http://stackoverflow.com/questions/3062205/setting-the-source-ip-for-a-udp-socket) */
+
+#define MSGCONTROLLEN 1024
+void main_parse_loop(int sock) 
+{
+	ssize_t n;
+	while (1) {
+		char buf[2*BUFSIZE];
+		char msg_control[MSGCONTROLLEN];
+		struct sockaddr_in6 from;
+		socklen_t fromlen=sizeof(from);
+		struct iovec iov[] = {{buf, BUFSIZE}};
+		struct msghdr msg = {&from, fromlen, iov, 1, msg_control, MSGCONTROLLEN, 0};
+		struct in6_pktinfo in6_pktinfo;
+		int have_in6_pktinfo = 0;
+		struct cmsghdr* cmsg;
+
+		n = recvmsg(sock, &msg, 0);
+		if (n <= 0) return;
+		for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg))
+		{
+			if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO)
+			{
+				in6_pktinfo = *(struct in6_pktinfo*)CMSG_DATA(cmsg);
+				have_in6_pktinfo = 1;
+			}
+		}
+		if ((n = dnsparse(buf,&from,n)) > 0) {
+			iov[0].iov_len = n;
+			msg.msg_controllen = MSGCONTROLLEN;
+
+			cmsg = CMSG_FIRSTHDR(&msg);
+			if (have_in6_pktinfo)
+			{
+				cmsg->cmsg_level = IPPROTO_IPV6;
+				cmsg->cmsg_type = IPV6_PKTINFO;
+				cmsg->cmsg_len = CMSG_LEN(sizeof(in6_pktinfo));
+				*(struct in6_pktinfo*)CMSG_DATA(cmsg) = in6_pktinfo;
+				msg.msg_controllen = CMSG_SPACE(sizeof(in6_pktinfo));
+			} else
+				msg.msg_controllen = 0;
+			sendmsg(sock, &msg, 0);
 			ra_clean();
 		}
 	}
@@ -252,11 +303,12 @@ int main(int argc, char *argv[])
 {
 	struct vdestack *stack;
 	struct sockaddr_in6 bindsockaddr;
+	int on = 1, off = 0;
 	int dnssock;
 	char *progname = basename(argv[0]);
 	char *nameservers = NULL;
 #define PIDFILEARG 131
-	static char *short_options = "hD:f:dvns:r:R:i:";
+	static char *short_options = "hD:f:dvns:r:R:i:t:";
 	static struct option long_options[] = {
 		{"help", 0 , 0, 'h'},
 		{"mapdomain", 1 , 0, 'D'},
@@ -269,6 +321,7 @@ int main(int argc, char *argv[])
 		{"iface", 1 , 0, 'i'},
 		{"resolver", 1 , 0, 'r'},
 		{"reverse", 1 , 0, 'R'},
+		{"timeout", 1 , 0, 't'},
 		{0, 0, 0, 0}
 	};
 	int option_index;
@@ -306,6 +359,9 @@ int main(int argc, char *argv[])
 			case 'R':
 				if (set_reverse_policy(optarg))
 					usage(progname);
+				break;
+			case 't':
+				ra_set_timeout(atoi(optarg));
 				break;
 			case PIDFILEARG:
 				pidfile=optarg;
@@ -388,6 +444,11 @@ int main(int argc, char *argv[])
 		dnssock=vde_msocket(stack,AF_INET6,SOCK_DGRAM, 0);
 	} else
 		dnssock=socket(AF_INET6,SOCK_DGRAM, 0);
+
+	setsockopt(dnssock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	//setsockopt(dnssock, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on));
+	setsockopt(dnssock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));
+	setsockopt(dnssock, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off));
 
 	if (interface && bindtodevice(dnssock, interface) < 0) {
 		printlog(LOG_ERR, "bindtodevice %s", strerror(errno));

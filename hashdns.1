@@ -89,6 +89,12 @@ the results of all the queries, \fBsame\fR add a cache item only if the sender i
 about its own address, \fBnet\fR add a cache item if the sender is querying about
 another host on the same subnet (common 64 bit prefix).
 
+.TP
+\fB\-t \fI seconds
+.TQ
+\fB\-\-timeout \fI seconds
+Set the timeout for the reverse mapping cache. Entries expire after the specified
+number of seconds. (default value 3600 = 1 hour).
 
 .TP
 \fB\-d 

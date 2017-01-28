@@ -28,9 +28,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-static unsigned int revttl=60 /*3600*/;
+static unsigned int revtimeout = 3600;
 static unsigned int nrecords;
-static unsigned int maxrecords= 32 /*32768*/;
+static unsigned int maxrecords = 32768;
 
 struct revaddr {
 	struct revaddr *next;
@@ -46,7 +46,7 @@ void ra_add(char *name, struct in6_addr *addr)
 	struct revaddr *scan=rah;
 	while (scan) {
 		if (memcmp (&(scan->addr),addr,sizeof(* addr)) == 0) {
-			scan->expire = time(NULL) + revttl;
+			scan->expire = time(NULL) + revtimeout;
 			//printf("update %ld\n",scan->expire);
 			return;
 		}
@@ -55,7 +55,7 @@ void ra_add(char *name, struct in6_addr *addr)
 	if (nrecords < maxrecords) {
 		struct revaddr *ra=malloc(sizeof(struct revaddr)+strlen(name)+1);
 		ra->addr = *addr;
-		ra->expire = time(NULL) + revttl;
+		ra->expire = time(NULL) + revtimeout;
 		ra->next = rah;
 		strcpy(ra->name,name);
 		//printf("new %ld\n",ra->expire);
@@ -95,10 +95,10 @@ void ra_clean(void)
 	}
 }
 
-void ra_setttl(unsigned int ttl) {
-	revttl = ttl;
+void ra_set_timeout(unsigned int timeout) {
+	revtimeout = timeout;
 }
 
-unsigned int ra_gettl(void) {
-	return revttl;
+unsigned int ra_get_timeout(void) {
+	return revtimeout;
 }
