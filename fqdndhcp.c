@@ -779,4 +779,5 @@ int main(int argc, char *argv[])
 			vde_close(vdeconn);
 		}
 	}
+	return 0;
 }
