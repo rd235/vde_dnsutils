@@ -465,7 +465,7 @@ void main_vde_loop(VDECONN *conn)
 		if (n >= 14 && (memcmp(buf,dhcp_ethernet_addr,sizeof(dhcp_ethernet_addr))==0 ||
 					memcmp(buf,mymac,sizeof(mymac))==0)) {
 #ifdef PACKETDUMP
-			printf("INPACKET %ld\n",n);
+			printf("INPACKET %zd\n",n);
 			packetdump(stderr, buf,n);
 #endif
 			if ((n = eth_pktin(buf, n, replybuf, STDMTU)) > 0) 
@@ -535,7 +535,7 @@ void main_iface_loop(int fd) {
 		n=recvfrom(fd, buf, DHCP_PACKET_SIZE, 0, (struct sockaddr *) &from, &fromlen);
 		printf("got msg\n");
 #ifdef PACKETDUMP
-		printf("INPACKET %ld\n",n);
+		printf("INPACKET %zd\n",n);
 		packetdump(stderr, buf,n);
 #endif
 		if ((n = eth_pktin(buf, n, replybuf, STDMTU)) > 0)
@@ -676,4 +676,5 @@ int main(int argc, char *argv[])
 			vde_close(vdeconn);
 		}
 	}
+	return 0;
 }

@@ -531,7 +531,7 @@ void main_vde_loop(VDECONN *conn)
 					memcmp(buf,mymac,sizeof(mymac))==0)) {
 #ifdef PACKETDUMP
 			if (verbose) {
-				fprintf(stderr, "INPACKET %ld\n",n);
+				fprintf(stderr, "INPACKET %zd\n",n);
 				packetdump(stderr, buf,n);
 			}
 #endif
@@ -638,14 +638,14 @@ void main_iface_loop(int fd) {
 		n=recvfrom(fd, buf, DHCP_PACKET_SIZE, 0, (struct sockaddr *) &from, &fromlen);
 #ifdef PACKETDUMP
 		if (verbose) {
-			fprintf(stderr, "INPACKET %ld\n",n);
+			fprintf(stderr, "INPACKET %zd\n",n);
 			packetdump(stderr, buf,n);
 		}
 #endif
 		if ((replylen=dhcpparse(dhcph,n,rdhcph,DHCP_PACKET_SIZE)) > 0) {
 #ifdef PACKETDUMP
 			if (verbose) {
-				fprintf(stderr, "OUTPACKET %ld\n",replylen);
+				fprintf(stderr, "OUTPACKET %zd\n",replylen);
 				packetdump(stderr, replybuf,replylen);
 			}
 #endif
