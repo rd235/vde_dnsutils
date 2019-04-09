@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <stddef.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <sys/types.h>
@@ -353,7 +354,7 @@ size_t dhcpparse(struct dhcp_head *dhcph, size_t len, struct dhcp_head *rdhcph, 
 				case DHCPDISCOVER:
 					if (geta(fqdn, yiaddr) > 0) {
 						roptptr = add_opt1(roptptr, rbuflimit, OPTION_TYPE, DHCPOFFER);
-						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, 0xffffffff);
+						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, STDVALID);
 						if (geta(defmask, xtraddr) > 0 || getxtra(fqdn,"-mask",xtraddr) > 0)
 								roptptr = add_opt(roptptr, rbuflimit, OPTION_MASK, xtraddr, 4);
 						if (geta(defgateway, xtraddr) > 0 || getxtra(fqdn,"-gw",xtraddr) > 0)
@@ -367,7 +368,7 @@ size_t dhcpparse(struct dhcp_head *dhcph, size_t len, struct dhcp_head *rdhcph, 
 				case DHCPREQUEST:
 					if (geta(fqdn, yiaddr) > 0) {
 						roptptr = add_opt1(roptptr, rbuflimit, OPTION_TYPE, DHCPACK);
-						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, 0xffffffff);
+						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, STDVALID);
 						if (geta(defmask, xtraddr) > 0 || getxtra(fqdn,"-mask",xtraddr) > 0)
 								roptptr = add_opt(roptptr, rbuflimit, OPTION_MASK, xtraddr, 4);
 						if (geta(defgateway, xtraddr) > 0 || getxtra(fqdn,"-gw",xtraddr) > 0)
@@ -475,19 +476,26 @@ void main_vde_loop(VDECONN *conn)
 }
 
 static struct sock_filter filterprog[] = {
-	{ 0x28, 0, 0, 0x0000000c },
-	{ 0x15, 0, 9, 0x00000800 }, /* IPv4 */
-	{ 0x20, 0, 0, 0x0000001e },
-	{ 0x15, 0, 7, 0xffffffff }, /* to 255.255.255.255 */
-	{ 0x30, 0, 0, 0x00000017 },
-	{ 0x15, 0, 5, 0x00000011 }, /* UDP */
-	{ 0x28, 0, 0, 0x00000014 },
-	{ 0x45, 3, 0, 0x00001fff },
-	{ 0x28, 0, 0, 0x00000024 },
-	{ 0x15, 0, 1, 0x00000043 }, /* dst UDP Port 67 */
-	{ 0x6, 0, 0, 0x00000640 },
-	{ 0x6, 0, 0, 0x00000000 },
-
+	// It is IPv4
+	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, offsetof(struct ethhdr, h_proto)),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, ETH_P_IP, 0, 9),
+	// to 255.255.255.255
+	BPF_STMT(BPF_LD+BPF_W+BPF_ABS, ETH_HLEN + offsetof(struct iphdr, daddr)),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0xffffffff, 0, 7),
+	// it is UDP
+	BPF_STMT(BPF_LD+BPF_B+BPF_ABS, ETH_HLEN + offsetof(struct iphdr, protocol)),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, IPPROTO_UDP, 0, 5),
+	// it is not a fragment
+	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, ETH_HLEN + offsetof(struct iphdr, frag_off)),
+	BPF_JUMP(BPF_JMP+BPF_JSET+BPF_K, 0x1fff, 3, 0),
+	// UDP port == 67
+	BPF_STMT(BPF_LD+BPF_H+BPF_ABS, ETH_HLEN + sizeof(struct iphdr) +
+			offsetof(struct udphdr, dest)),
+	BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0x43, 0, 1),
+	// return the entire packet
+	BPF_STMT(BPF_RET+BPF_K, 0x640),
+	// filter this packet
+	BPF_STMT(BPF_RET+BPF_K, 0),
 };
 
 static struct sock_fprog filter = {
