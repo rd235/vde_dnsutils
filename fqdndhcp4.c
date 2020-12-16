@@ -79,11 +79,13 @@
 #define OPTION_REQIP     50
 #define OPTION_LEASETIME 51
 #define OPTION_TYPE      53
+#define OPTION_SERVID    54
 #define OPTION_PARLIST   55
 #define OPTION_FQDN      81
 #define OPTION_DOMAIN_LIST      119
 #define OPTION_END      255
 
+#define STDSERVID 0
 #define STDRENEW 0
 #define STDREBIND 0
 #define STDPREF ~0
@@ -158,7 +160,7 @@ __attribute__((__packed__)) struct dhcp_option {
 };
 
 unsigned int chksum(unsigned int sum, void *vbuf, size_t len) {
-	char *buf=vbuf;
+	unsigned char *buf=vbuf;
 	int i;
 	for (i=0; i<len; i++) 
 		sum += (i%2)? buf[i]: buf[i]<<8;
@@ -354,6 +356,7 @@ size_t dhcpparse(struct dhcp_head *dhcph, size_t len, struct dhcp_head *rdhcph, 
 				case DHCPDISCOVER:
 					if (geta(fqdn, yiaddr) > 0) {
 						roptptr = add_opt1(roptptr, rbuflimit, OPTION_TYPE, DHCPOFFER);
+						roptptr = add_optlong(roptptr, rbuflimit, OPTION_SERVID, STDSERVID);
 						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, STDVALID);
 						if (geta(defmask, xtraddr) > 0 || getxtra(fqdn,"-mask",xtraddr) > 0)
 								roptptr = add_opt(roptptr, rbuflimit, OPTION_MASK, xtraddr, 4);
@@ -368,6 +371,7 @@ size_t dhcpparse(struct dhcp_head *dhcph, size_t len, struct dhcp_head *rdhcph, 
 				case DHCPREQUEST:
 					if (geta(fqdn, yiaddr) > 0) {
 						roptptr = add_opt1(roptptr, rbuflimit, OPTION_TYPE, DHCPACK);
+						roptptr = add_optlong(roptptr, rbuflimit, OPTION_SERVID, STDSERVID);
 						roptptr = add_optlong(roptptr, rbuflimit, OPTION_LEASETIME, STDVALID);
 						if (geta(defmask, xtraddr) > 0 || getxtra(fqdn,"-mask",xtraddr) > 0)
 								roptptr = add_opt(roptptr, rbuflimit, OPTION_MASK, xtraddr, 4);
@@ -418,11 +422,12 @@ size_t eth_pktout(char *bufin, char *bufout, ssize_t n) {
 	memcpy(ethh->ether_dhost,ethh->ether_shost,6);
 	memcpy(ethh->ether_shost,mymac,6);
 	/* IP */
-	iph->daddr = iph->saddr;
+	//iph->daddr = iph->saddr;
+	iph->daddr = 0xffffffff;
 	iph->saddr = 0;
 	iph->tot_len = htons(n - sizeof(*ethh));
 	iph->check = 0;
-	sum = chksum(sum, (char *) iph, 20);
+	sum = chksum(sum, iph, 20);
 	iph->check = htons(~sum);
 	/* UDP */
 	udph->dest= udph->source;
@@ -447,7 +452,7 @@ size_t eth_pktin(char *buf, ssize_t n, char *replybuf, ssize_t replybuflen) {
 	if (iph->version != 4) return 0; //this is not IPv6
 	if (iph->protocol != 17) return 0; //this is not UDP
 	if (ntohs(udph->dest) != DHCP_SERVERPORT) return 0; /* wrong destination port */
-	if (n >= headlen+sizeof(*bootph) && (replylen=bootpparse(bootph,n-headlen,rbootph,replybuflen - headlen)) > 0) {
+	if (n >= headlen+(sizeof(*bootph) - BOOTP_VEND_LEN) && (replylen=bootpparse(bootph,n-headlen,rbootph,replybuflen - headlen)) > 0) {
 		return eth_pktout(buf, replybuf, replylen+headlen);
 	} else
 		return 0;
