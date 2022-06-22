@@ -1,10 +1,11 @@
 # vde\_dnsutils
 DNS utilities for vde projects (hashdns/fqdndhcp)
 
-* vde\_dnsutils is deprecated. The new more general projects
+## ℹ Info
+vde\_dnsutils is deprecated. The new more general projects
 [iothnamed](https://github.com/virtualsquare/iothnamed) and 
 [namedhcp](https://github.com/virtualsquare/namedhcp) can provide
-the functionnalities formerly provided by vde\_dnsutil.
+the functionalities formerly provided by vde\_dnsutil.
 This project is no longer actively maintained.
 
 ## Install vde\_dnsutils
